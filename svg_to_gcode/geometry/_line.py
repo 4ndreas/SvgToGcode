@@ -1,7 +1,7 @@
 from svg_to_gcode.geometry import Vector
 from svg_to_gcode.geometry import Curve
 from svg_to_gcode import formulas
-
+import math
 
 # A line segment
 class Line(Curve):
@@ -14,6 +14,10 @@ class Line(Curve):
         self.end = end
 
         self.slope = formulas.line_slope(start, end)
+        # self.slopeRad = formulas.line_slopeRad(start, end)
+
+        # print(self.slope, math.degrees(self.slopeRad ))
+
         self.offset = formulas.line_offset(start, end)
 
     def __repr__(self):

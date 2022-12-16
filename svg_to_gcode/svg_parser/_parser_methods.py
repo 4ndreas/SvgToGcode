@@ -7,6 +7,12 @@ from svg_to_gcode.geometry import Curve
 
 NAMESPACES = {'svg': 'http://www.w3.org/2000/svg'}
 
+class drawOpts:
+    def  __init__(self):
+        self.draw_hidden = False
+        self.doFiltering = False
+        self.filter = None
+    
 
 def _has_style(element: ElementTree.Element, key: str, value: str) -> bool:
     """
@@ -16,7 +22,7 @@ def _has_style(element: ElementTree.Element, key: str, value: str) -> bool:
 
 
 # Todo deal with viewBoxes
-def parse_root(root: ElementTree.Element, transform_origin=True, canvas_height=None, draw_hidden=False,
+def parse_root(root: ElementTree.Element, transform_origin=True, canvas_height=None, dOpts=drawOpts,
                visible_root=True, root_transformation=None) -> List[Curve]:
 
     """
@@ -27,7 +33,7 @@ def parse_root(root: ElementTree.Element, transform_origin=True, canvas_height=N
     does not contain the height attribute, it must be either manually specified or transform must be False.
     :param transform_origin: Whether or not to transform input coordinates from the svg coordinate system to standard
     cartesian system. Depends on canvas_height for calculations.
-    :param draw_hidden: Whether or not to draw hidden elements based on their display, visibility and opacity attributes.
+    :param dOpts: Whether or not to draw hidden elements based on their display, visibility and opacity attributes.
     :param visible_root: Specifies whether or the root is visible. (Inheritance can be overridden)
     :param root_transformation: Specifies whether the root's transformation. (Transformations are inheritable)
     :return: A list of geometric curves describing the svg. Use the Compiler sub-module to compile them to gcode.
@@ -61,20 +67,31 @@ def parse_root(root: ElementTree.Element, transform_origin=True, canvas_height=N
         # Override inherited visibility
         visible = visible or (_has_style(element, "visibility", "visible"))
 
-        # If the current element is opaque and visible, draw it
-        if draw_hidden or visible:
-            if element.tag == "{%s}path" % NAMESPACES["svg"]:
-                path = Path(element.attrib['d'], canvas_height, transform_origin, transformation)
-                curves.extend(path.curves)
+        draw = True
+        # check for filter 
+        if dOpts.doFiltering:
+            if dOpts.filter == None:
+                if element.get('stroke-dasharray') != None:
+                    draw = False
+            else:
+                if element.get(dOpts.filter) == None:
+                    draw = False
+
+        if draw:
+            # If the current element is opaque and visible, draw it
+            if dOpts.draw_hidden or visible:
+                if element.tag == "{%s}path" % NAMESPACES["svg"]:
+                    path = Path(element.attrib['d'], canvas_height, transform_origin, transformation)
+                    curves.extend(path.curves)
 
         # Continue the recursion
-        curves.extend(parse_root(element, transform_origin, canvas_height, draw_hidden, visible, transformation))
+        curves.extend(parse_root(element, transform_origin, canvas_height, dOpts, visible, transformation))
 
     # ToDo implement shapes class
     return curves
 
 
-def parse_string(svg_string: str, transform_origin=True, canvas_height=None, draw_hidden=False) -> List[Curve]:
+def parse_string(svg_string: str, transform_origin=True, canvas_height=None, dOpts=drawOpts) -> List[Curve]:
     """
         Recursively parse an svg string into geometric curves. (Wrapper for parse_root)
 
@@ -83,14 +100,14 @@ def parse_string(svg_string: str, transform_origin=True, canvas_height=None, dra
         does not contain the height attribute, it must be either manually specified or transform_origin must be False.
         :param transform_origin: Whether or not to transform input coordinates from the svg coordinate system to standard cartesian
          system. Depends on canvas_height for calculations.
-        :param draw_hidden: Whether or not to draw hidden elements based on their display, visibility and opacity attributes.
+        :param dOpts: Whether or not to draw hidden elements based on their display, visibility and opacity attributes.
         :return: A list of geometric curves describing the svg. Use the Compiler sub-module to compile them to gcode.
     """
     root = ElementTree.fromstring(svg_string)
-    return parse_root(root, transform_origin, canvas_height, draw_hidden)
+    return parse_root(root, transform_origin, canvas_height, dOpts)
 
 
-def parse_file(file_path: str, transform_origin=True, canvas_height=None, draw_hidden=False) -> List[Curve]:
+def parse_file(file_path: str, transform_origin=True, canvas_height=None, dOpts=drawOpts) -> List[Curve]:
     """
             Recursively parse an svg file into geometric curves. (Wrapper for parse_root)
 
@@ -99,8 +116,12 @@ def parse_file(file_path: str, transform_origin=True, canvas_height=None, draw_h
             does not contain the height attribute, it must be either manually specified or transform_origin must be False.
             :param transform_origin: Whether or not to transform input coordinates from the svg coordinate system to standard cartesian
              system. Depends on canvas_height for calculations.
-            :param draw_hidden: Whether or not to draw hidden elements based on their display, visibility and opacity attributes.
+            :param dOpts: Whether or not to draw hidden elements based on their display, visibility and opacity attributes.
             :return: A list of geometric curves describing the svg. Use the Compiler sub-module to compile them to gcode.
         """
+    if dOpts == None:
+        dOpts.draw_hidden= False
+        dOpts.Filter = None
+
     root = ElementTree.parse(file_path).getroot()
-    return parse_root(root, transform_origin, canvas_height, draw_hidden)
+    return parse_root(root, transform_origin, canvas_height, dOpts)

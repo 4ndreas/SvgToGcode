@@ -25,7 +25,7 @@ def tolerance_constrain(value, maximum, minimum, tolerance=TOLERANCES["operation
 
 
 def line_slope(p1, p2):
-    """Calculate the slope of the line p1p2"""
+    # """Calculate the slope of the line p1p2"""
     x1, y1 = p1.x, p1.y
     x2, y2 = p2.x, p2.y
 
@@ -33,6 +33,36 @@ def line_slope(p1, p2):
         return 1
 
     return (y1 - y2) / (x1 - x2)
+
+def line_slopeRad(p1,p2):    
+    a = p2.x - p1.x 
+    b = p2.y - p1.y
+
+    if p1.x == p2.x or a == 0:
+        if b > 0:
+            return math.pi/2
+        elif b < 0:
+            return math.pi*(3/2)
+    
+    if b == 0:
+        if a >= 0:
+            return 0.0
+        else:
+            return math.pi
+
+    slope = b/a
+
+    if a > 0 and b > 0:
+        return slope * math.pi/4
+
+    if a > 0 and b < 0:
+        return 2 * math.pi + slope * math.pi/4
+
+    if a < 0 and b > 0:
+        return 1 * math.pi + slope * math.pi/4
+
+    if a < 0 and b < 0:
+        return 1 * math.pi + slope * math.pi/4
 
 
 def line_offset(p1, p2):
