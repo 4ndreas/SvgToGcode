@@ -18,67 +18,79 @@ verbose = False
 class CustomInterface(interfaces.Gcode):
     def __init__(self):
         super().__init__()
-        self.Zlift = 4.0
+        self.Zlift = 3.0
         self.ZCut = 0
-        self.ZFeed = 5000
-        self.ABFeed = 15000
+        self.ZFeed = 7000
+        self.ABFeed = 20000
         self.slope = [0.0, 0.0]
         # self.position = Vector(0, 0)
         self.position = None
-        self.position_history_travel = [(0, 0, 0)]
-        self.position_history_t0 = [(0, 0, 0)]
-        self.position_history_t1 = [(0, 0, 0)]
+
+        self.position_history_travel= [(0,0,0,0,0,0)]
+        self.position_history_t0 = [(0,0,0,0,0,0)]
+        self.position_history_t1 = [(0,0,0,0,0,0)]
+        self.orientation_history = [(0,0,0,0,0,0)]
+
+
         self.positionZ = 0.0 # z u v 
         self.currentMove = -1
         self.tool = 0
         self.toolOffset = [(0, 0, 0,0)]
         self.toolOffset.append((-78,0,0,0))
 
-    def addHistory(self):
+    def addHistory(self,move):
         if self.currentMove==0:
-            self.position_history_t0.append((self.position.x, self.position.y, self.positionZ))
+            # self.position_history_t0.append((self.position.x, self.position.y, self.positionZ))
+            self.position_history_t0.append(move)
         elif self.currentMove==1:
-            self.position_history_t1.append((self.position.x, self.position.y, self.positionZ))
+            # self.position_history_t1.append((self.position.x, self.position.y, self.positionZ))
+            self.position_history_t1.append(move)
         else:
-            self.position_history_travel.append((self.position.x, self.position.y, self.positionZ))
+            self.position_history_travel.append(move)
+            # self.position_history_travel.append((self.position.x, self.position.y, self.positionZ))
 
     def toolUp(self, tool=0):
         self.tool = tool
         self.positionZ = self.ZCut + self.Zlift
-        self.addHistory()
+
+        deltaZ = self.Zlift -self.positionZ
+        move = (self.position.x,self.position.y,self.positionZ ,0,0,deltaZ )
+        self.addHistory(move)
+
         if tool == 1:
-            return f"G1 W{self.positionZ} F{self.ZFeed}; lift up"
+            return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f}; lift up"
         else:
-            return f"G1 Z{self.positionZ} F{self.ZFeed} ; lift up"
+            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift up"
 
     def toolDown(self, tool=0):
         self.tool = tool
         #to do add toolhead selection
         self.positionZ = self.ZCut
-        self.addHistory()
+
+        deltaZ = self.positionZ - self.Zlift
+        move = (self.position.x,self.position.y,self.positionZ ,0,0, deltaZ )
+        self.addHistory(move)
+
         if tool == 1:
-            return f"G1 W{self.positionZ} F{self.ZFeed} ; lift down" 
+            return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift down" 
         else:
-            return f"G1 Z{self.positionZ} F{self.ZFeed} ; lift down"   
+            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift down"   
 
     def setSlope(self, tool=0, slope=0):
         self.tool = tool
         #to do convert to degree
         self.slope[tool] = slope
-        self.addHistory()
 
         degSlope = math.degrees(self.slope[tool])
 
-        degSlope = degSlope - 90
-        if degSlope <0:
-            degSlope = degSlope + 360
-        degSlope = 360 - degSlope
+        sArrow = (self.position.x, self.position.y,self.positionZ, 5*math.cos(slope),5*math.sin(slope),0)
+        self.orientation_history.append(sArrow)
 
         if tool == 1:
             
-            return f"G1 B{degSlope} F{self.ABFeed}" 
+            return f"G1 B{degSlope:.{self.precision}f} F{self.ABFeed:.{self.precision}f}" 
         else:
-            return f"G1 A{degSlope} F{self.ABFeed}" 
+            return f"G1 A{degSlope:.{self.precision}f} F{self.ABFeed:.{self.precision}f}" 
 
     def append_curves(self, curves: [typing.Type[Curve]], tool):
         """
@@ -98,7 +110,7 @@ class CustomInterface(interfaces.Gcode):
         
     def linear_move(self, x=None, y=None, z=None):
 
-        self.addHistory()
+        # self.addHistory()
         if self._next_speed is None:
             raise ValueError("Undefined movement speed. Call set_movement_speed before executing movement commands.")
 
@@ -136,6 +148,11 @@ class CustomInterface(interfaces.Gcode):
             if y is None:
                 y = self.position.y
 
+            move = (self.position.x, self.position.y, self.positionZ,
+                        x-self.position.x,
+                        y-self.position.y, 0)
+            self.addHistory(move)
+
             # if(self.currentMove >= 0):
             #     self.position = Vector(x, y) + self.toolOffset[self.currentMove]
             # else:
@@ -145,7 +162,7 @@ class CustomInterface(interfaces.Gcode):
             # if z is None:
             #     z = self.positionZ     
 
-        self.addHistory()
+        # self.addHistory()
 
         if verbose:
             print(f"Move to {x}, {y}, {z}")
@@ -165,16 +182,17 @@ class CustomInterface(interfaces.Gcode):
         history_t0 = np.array(self.position_history_t0)
         history_t1 = np.array(self.position_history_t1)
 
+        history_or = np.array(self.orientation_history)
+
         if backend == 'matplotlib':
             from mpl_toolkits.mplot3d import Axes3D
             import matplotlib.pyplot as plt
             fig = plt.figure()
             ax = fig.add_subplot(projection='3d')
             X, Y, Z = history_travel[:, 0], history_travel[:, 1], history_travel[:, 2]
-            ax.plot(X, Y, Z, "bo--")
-
-      
-
+            # ax.plot(X, Y, Z, "bo--")
+            
+            
             # Hack to keep 3D plot's aspect ratio square. See SO answer:
             # http://stackoverflow.com/questions/13685386
 
@@ -189,11 +207,22 @@ class CustomInterface(interfaces.Gcode):
             ax.set_ylim(mean_y - max_range, mean_y + max_range)
             ax.set_zlim(mean_z - max_range, mean_z + max_range)
 
-            X, Y, Z = history_t0[:, 0], history_t0[:, 1], history_t0[:, 2]
-            ax.plot(X, Y, Z, color='green')
+            # travel
+            ax.quiver(history_travel[:,0],history_travel[:,1],history_travel[:,2],history_travel[:,3],history_travel[:,4],history_travel[:,5],color='g')
+            
+            # rot axis
+            ax.quiver(history_or[:,0],history_or[:,1],history_or[:,2],history_or[:,3],history_or[:,4],history_or[:,5],color='y')
 
-            X, Y, Z = history_t1[:, 0], history_t1[:, 1], history_t1[:, 2]
-            ax.plot(X, Y, Z,  color='red')      
+            # T0
+            ax.quiver(history_t0[:,0],history_t0[:,1],history_t0[:,2],history_t0[:,3],history_t0[:,4],history_t0[:,5],color='b')
+            # T1
+            ax.quiver(history_t1[:,0],history_t1[:,1],history_t1[:,2],history_t1[:,3],history_t1[:,4],history_t1[:,5])
+
+            # X, Y, Z = history_t0[:, 0], history_t0[:, 1], history_t0[:, 2]
+            # ax.plot(X, Y, Z, color='green')
+
+            # X, Y, Z = history_t1[:, 0], history_t1[:, 1], history_t1[:, 2]
+            # ax.plot(X, Y, Z,  color='red')      
 
             plt.show()
         elif backend == 'mayavi':
@@ -290,19 +319,20 @@ class P2Compiler(Compiler):
 
 
 offsetZ = 58
-offsetW = 65
-offsetA = 8
-offsetB = -4
+offsetW = 59
+# offsetA = -82
+# offsetB = -94
 
 
-custom_header = [f"G28 Z W\nG92 Z{offsetZ} W{offsetW}\nG28 A B\nG1 A0 B0 F10000\nG92 A{offsetA} B{offsetB}\nG1 A0 B0 F10000\n"]
+custom_header = [f"G28 Z W\nG92 Z{offsetZ} W{offsetW}\nG28 A B\nG1 A0 B0 F10000\n"]
+# custom_header = [f"G28 Z W\nG92 Z{offsetZ} W{offsetW}\nG28 A B\nG1 A0 B0 F10000\nG92 A{offsetA} B{offsetB}\nG1 A0 B0 F10000\n"]
 # custom_header = ["G28 Z\nG92 Z20\nG28 W\nG92 W20"]  # debug 
 
 custom_footer = ["G1 Z20 W20\nG1 X0 Y0 F10000\nM9"]
 
 # Instantiate a compiler, specifying the interface type and the speed at which the tool should move. pass_depth controls
 # how far down the tool moves after every pass. Set it to 0 if your machine does not support Z axis movement.
-gcode_compiler = P2Compiler(CustomInterface, movement_speed=7500, cutting_speed=2000, pass_depth=1,custom_header=custom_header,custom_footer=custom_footer)
+gcode_compiler = P2Compiler(CustomInterface, movement_speed=7500, cutting_speed=3000, pass_depth=1,custom_header=custom_header,custom_footer=custom_footer)
 
 
 # gcode_compiler.interface.toolOffset[0]
@@ -312,7 +342,11 @@ gcode_compiler = P2Compiler(CustomInterface, movement_speed=7500, cutting_speed=
 # filename = "Elephant_small_8.svg"
 # filename = "Rhombische_Dodekaeder_solidModel_0.svg"
 # from svg_to_gcode.svg_parser import drawOpts
-filename = "elephant_10x_0.svg"
+# filename = "elephant_10x_0.svg"
+# filename = "12eck.svg"
+filename = "elephant_2022_r2.svg"
+
+outputFilename = filename.replace('.svg','.gcode')
 
 dOpts = drawOpts()
 dOpts.doFiltering = True
@@ -327,13 +361,14 @@ cuts = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric 
 # plots = parse_file(filename,True,None,dOpts) # Parse an svg file into geometric curves
 
 # print(curves)
+gcode_compiler.slopeMax = math.radians(180)
 gcode_compiler.append_curves(groves,0) 
+gcode_compiler.slopeMax = math.radians(10)
 gcode_compiler.append_curves(cuts,1) 
 
 # z axis offset at home = 200
 
-outputFilename = "drawing.gcode"
-outputFilename = "elephant_10x_0.gcode"
+# outputFilename = "drawing.gcode"
 
 
 gcode_compiler.compile_to_file(outputFilename, passes=1)

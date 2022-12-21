@@ -52,17 +52,16 @@ def line_slopeRad(p1,p2):
 
     slope = b/a
 
-    if a > 0 and b > 0:
-        return slope * math.pi/4
+    if a > 0 and b > 0: #1
+        return math.atan(slope)# * math.pi/4
 
-    if a > 0 and b < 0:
-        return 2 * math.pi + slope * math.pi/4
+    if a > 0 and b < 0: #4
+        return 2* math.pi + math.atan(slope) 
 
-    if a < 0 and b > 0:
-        return 1 * math.pi + slope * math.pi/4
-
-    if a < 0 and b < 0:
-        return 1 * math.pi + slope * math.pi/4
+    if a < 0 and b > 0: #2
+        return math.pi +math.atan(slope) 
+    if a < 0 and b < 0: #3
+        return math.pi +math.atan(slope) 
 
 
 def line_offset(p1, p2):
