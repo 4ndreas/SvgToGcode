@@ -18,11 +18,18 @@ verbose = False
 class CustomInterface(interfaces.Gcode):
     def __init__(self):
         super().__init__()
-        self.Zlift = 3.0
+        self.Zlift = 5.0
+        self.ZPark = 25.0
         self.ZCut = 0
         self.ZFeed = 7000
-        self.ABFeed = 20000
-        self.slope = [0.0, 0.0]
+
+        self.overCut = 0.3  # value the cut extends over the point
+        self.preCut = -0.75 # value the cut begins before the point (negative to extend the line, positive to reduce the line cut)
+
+        # cutting and grove rotation speed 
+        self.ABFeed = 25000
+        self.slope = [0.0, 0.0] #[rad]
+
         # self.position = Vector(0, 0)
         self.position = None
 
@@ -31,6 +38,8 @@ class CustomInterface(interfaces.Gcode):
         self.position_history_t1 = [(0,0,0,0,0,0)]
         self.orientation_history = [(0,0,0,0,0,0)]
 
+        self.xMax = 0
+        self.yMax = 0
 
         self.positionZ = 0.0 # z u v 
         self.currentMove = -1
@@ -48,12 +57,55 @@ class CustomInterface(interfaces.Gcode):
         else:
             self.position_history_travel.append(move)
             # self.position_history_travel.append((self.position.x, self.position.y, self.positionZ))
+        # if move[0] > self.xMax:
+        #     self.xMax = move[0]
+        # if move[1] > self.yMax:
+        #     self.yMax = move[1]          
+
+    def addOverCut(self, tool, amount, dir):
+        command = "G1"
+        # extend cut (G1 cutting)
+        if dir > 0:
+            slope = self.slope[tool]    #[rad]
+            comment = " ; overCut"
+        else:
+        # move back to start cut early normaly G0 but since it is such a small amount we go with G1
+        # this should only happen if the tool head is up 
+            slope = self.slope[tool]    #[rad]
+            slope += 2*math.pi          # rotate to move backwards
+            comment = " ; preCut"
+
+        x, y = formulas.lineExtension(self.position.x,self.position.y,slope,amount)
+
+        xMove = x + self.toolOffset[self.tool][0]
+        yMove = y + self.toolOffset[self.tool][1]
+
+        command += f" X{xMove:.{self.precision}f}"
+        command += f" Y{yMove:.{self.precision}f}"
+        command += f" F{self._current_speed}"
+        
+        return command + comment
+
+
 
     def toolUp(self, tool=0):
         self.tool = tool
         self.positionZ = self.ZCut + self.Zlift
 
         deltaZ = self.Zlift -self.positionZ
+        move = (self.position.x,self.position.y,self.positionZ ,0,0,deltaZ )
+        self.addHistory(move)
+
+        if tool == 1:
+            return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f}; lift up"
+        else:
+            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift up"
+
+    def toolPark(self, tool=0):
+        self.tool = tool
+        self.positionZ = self.ZCut + self.ZPark
+
+        deltaZ = self.ZPark -self.positionZ
         move = (self.position.x,self.position.y,self.positionZ ,0,0,deltaZ )
         self.addHistory(move)
 
@@ -196,6 +248,9 @@ class CustomInterface(interfaces.Gcode):
             # Hack to keep 3D plot's aspect ratio square. See SO answer:
             # http://stackoverflow.com/questions/13685386
 
+            print("X max:", X.max(), " min:", X.min())
+            print("Y max:", Y.max(), " min:", Y.min())
+
             max_range = np.array([X.max()-X.min(),
                                   Y.max()-Y.min(),
                                   Z.max()-Z.min()]).max() / 2.0
@@ -253,7 +308,7 @@ class P2Compiler(Compiler):
 
             self.append_line_chain(line_chain,tool)
 
-        code = [f"T{tool}", self.interface.toolUp(tool)]
+        code = [f";T{tool}", self.interface.toolPark(tool)]
         self.body.extend(code)
 
     def append_line_chain(self, line_chain: LineSegmentChain,tool):
@@ -281,7 +336,10 @@ class P2Compiler(Compiler):
             if self.interface.position  == None:
                 self.interface.position = Vector(0,0)
 
-            code = [f"T{tool}",
+            # add precut
+            start.x, start.y = formulas.lineExtension(start.x, start.y, slope + 2*math.pi, self.interface.preCut)
+
+            code = [f";T{tool}",
                     self.interface.toolUp(tool),
                     self.interface.set_movement_speed(self.movement_speed),
                     self.interface.linear_move(start.x, start.y), 
@@ -291,10 +349,8 @@ class P2Compiler(Compiler):
 
         
         for line in line_chain:
-            # print(slope)
-            # 
-            # print(slope)
-            # print(math.degrees(slope))
+
+            lastSlope = self.interface.slope[tool]
 
             slope = formulas.line_slopeRad(self.interface.position , line.end)
             deltaS = slope - self.interface.slope[tool]
@@ -303,8 +359,12 @@ class P2Compiler(Compiler):
             # print(f"{self.interface.slope[tool]} {line.slope} {deltaS}")
 
             if abs(deltaS) > self.slopeMax:
+                #add overcut 
+                code.append(self.interface.addOverCut(tool, self.interface.overCut, 1))
                 code.append(self.interface.toolUp(tool))
                 code.append(self.interface.setSlope(tool,slope))
+                #add precut 
+                code.append(self.interface.addOverCut(tool, self.interface.preCut, -1))
                 code.append(self.interface.toolDown(tool))
             else:
                 if abs(self.interface.slope[tool]- slope) > TOLERANCES["operation"]:
@@ -318,59 +378,78 @@ class P2Compiler(Compiler):
         self.body.extend(code)
 
 
+# working
+offsetX = -82 # 4mm offset + 78mm tool distance
 offsetZ = 58
 offsetW = 59
+
+workingOffsetX = 10
+workingOffsetY = 0
+
+# test
+# offsetZ = 48
+# offsetW = 49
+
 # offsetA = -82
 # offsetB = -94
 
 
-custom_header = [f"G28 Z W\nG92 Z{offsetZ} W{offsetW}\nG28 A B\nG1 A0 B0 F10000\n"]
+custom_header = [f"G28 X\nG92 X{offsetX}\nG0 X{workingOffsetX} Y{workingOffsetY} F10000\nG92 X0 Y0 \nG28 Z W\nG92 Z{offsetZ} W{offsetW}\nG28 A B\nG1 A0 B0 F10000\n"]
 # custom_header = [f"G28 Z W\nG92 Z{offsetZ} W{offsetW}\nG28 A B\nG1 A0 B0 F10000\nG92 A{offsetA} B{offsetB}\nG1 A0 B0 F10000\n"]
 # custom_header = ["G28 Z\nG92 Z20\nG28 W\nG92 W20"]  # debug 
 
-custom_footer = ["G1 Z20 W20\nG1 X0 Y0 F10000\nM9"]
+custom_footer = [f"G1 Z{offsetZ-5} W{offsetW-5}\nG1 X0 Y0 F15000\nM9"]
 
 # Instantiate a compiler, specifying the interface type and the speed at which the tool should move. pass_depth controls
 # how far down the tool moves after every pass. Set it to 0 if your machine does not support Z axis movement.
-gcode_compiler = P2Compiler(CustomInterface, movement_speed=7500, cutting_speed=3000, pass_depth=1,custom_header=custom_header,custom_footer=custom_footer)
+gcode_compiler = P2Compiler(CustomInterface, movement_speed=25000, cutting_speed=3000, pass_depth=1,custom_header=custom_header,custom_footer=custom_footer)
 
 
-# gcode_compiler.interface.toolOffset[0]
 # filename = "dice.svg"
-
 # filename = "box100.svg"
 # filename = "Elephant_small_8.svg"
 # filename = "Rhombische_Dodekaeder_solidModel_0.svg"
 # from svg_to_gcode.svg_parser import drawOpts
 # filename = "elephant_10x_0.svg"
 # filename = "12eck.svg"
-filename = "elephant_2022_r2.svg"
-
-outputFilename = filename.replace('.svg','.gcode')
+# filename = "elephant_2022_r2.svg"
+filename = "huhn_v3.svg"
 
 dOpts = drawOpts()
 dOpts.doFiltering = True
 
-dOpts.filter = 'stroke-dasharray' 
+### Pepakura Files ###
+# groves
+dOpts.filter = 'stroke-dasharray' # for groves for Pepakura Files
 groves = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
 
-dOpts.filter = None
+#cuts
+dOpts.filter = None # for cuts for Pepakura Files
 cuts = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
 
-# dOpts.filter = "plot"
-# plots = parse_file(filename,True,None,dOpts) # Parse an svg file into geometric curves
-
-# print(curves)
+# add(groves)
+gcode_compiler.cutting_speed = 5000
 gcode_compiler.slopeMax = math.radians(180)
-gcode_compiler.append_curves(groves,0) 
+gcode_compiler.append_curves(groves,0)
+
+# add(cuts)
+gcode_compiler.cutting_speed = 3000
 gcode_compiler.slopeMax = math.radians(10)
 gcode_compiler.append_curves(cuts,1) 
 
-# z axis offset at home = 200
 
-# outputFilename = "drawing.gcode"
+### Other SVG Files ###
+# dOpts.filter = None
+# dOpts.filter = "plot"
+# plots = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+# gcode_compiler.cutting_speed = 3000
+# gcode_compiler.slopeMax = math.radians(10)
+# gcode_compiler.append_curves(plots,1) 
 
 
+
+# Output File
+outputFilename = filename.replace('.svg','_5.gcode')
 gcode_compiler.compile_to_file(outputFilename, passes=1)
 gcode_compiler.interface.view()
 

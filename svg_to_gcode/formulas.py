@@ -63,6 +63,17 @@ def line_slopeRad(p1,p2):
     if a < 0 and b < 0: #3
         return math.pi +math.atan(slope) 
 
+def lineExtension(x,y,slope,lenth):
+    # exptend form this point in direction of the slope angle [rad]
+    delta_x = lenth * math.cos(slope)
+    delta_y = lenth * math.sin(slope)
+
+    # Berechne Koordinaten des neuen Punktes
+    new_x = x + delta_x
+    new_y = y + delta_y
+    # Gib die Koordinaten des neuen Punktes zurück
+    return new_x, new_y
+
 
 def line_offset(p1, p2):
     """Calculate the offset of the line p1p2 from the origin"""
