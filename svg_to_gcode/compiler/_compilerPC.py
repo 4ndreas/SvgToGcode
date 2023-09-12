@@ -12,7 +12,7 @@ from svg_to_gcode.geometry import Vector
 
 class CompilerPC(Compiler):
     def __init__(self, *args, **kwargs):
-        super(P2Compiler, self).__init__(*args, **kwargs)
+        super(CompilerPC, self).__init__(*args, **kwargs)
         self.slopeMax = math.radians(10)
         # self.slopeMax = 0.25
     def append_code(self,code):

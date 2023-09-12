@@ -1,7 +1,7 @@
 import math
 
 from svg_to_gcode.compiler.interfaces import cutterInterface
-from svg_to_gcode.svg_parser import parse_file, getMinMax, drawOpts
+from svg_to_gcode.svg_parser import parse_file, getMinMax, openFile,getOutputFileName, drawOpts
 from svg_to_gcode.compiler import CompilerPC
 
 verbose = False
@@ -26,22 +26,15 @@ custom_header = [f"G28 X\nG92 X{offsetX}\nG0 X{workingOffsetX} Y{workingOffsetY}
 
 custom_footer = [f"G1 Z{offsetZ-5} W{offsetW-5}\nG1 X0 Y0 F15000\nM9"]
 
-gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000, cutting_speed=3000, pass_depth=1,custom_header=custom_header,custom_footer=custom_footer)
+gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000,
+                             cutting_speed=3000, 
+                             pass_depth=1,
+                             custom_header=custom_header,
+                             custom_footer=custom_footer)
 
+filename = openFile()
+print("\r\nOpen File: " + filename + "\r\n")
 
-# filename = "dice.svg"
-# filename = "box100.svg"
-# filename = "Elephant_small_8.svg"
-# filename = "Rhombische_Dodekaeder_solidModel_0.svg"
-# from svg_to_gcode.svg_parser import drawOpts
-# filename = "elephant_10x_0.svg"
-# filename = "12eck.svg"
-# filename = "elephant_2022_r2.svg"
-# filename = "huhn_v3.svg"
-# filename = "HEV_Chest_scale.svg"
-# filename = "HEVMIR.svg"
-# filename = "HEV Belt-unfold 32 inch.svg"
-filename = "HEV_Chest_scale.svg"
 
 dOpts = drawOpts()
 dOpts.doFiltering = True
@@ -90,9 +83,12 @@ gcode_compiler.append_curves(finalCuts,1,0,0)
 
 gcode_compiler.append_code([f"; End Code"])
 
-
 # Output File
-print("Final Size")
-outputFilename = filename.replace('.svg','_5.gcode')
+outputFilename = getOutputFileName(filename)
 gcode_compiler.compile_to_file(outputFilename, passes=1)
+print("\r\nFile saved to: " + outputFilename + "\r\n")
+
+
+print("Final Size")
 gcode_compiler.interface.view()
+

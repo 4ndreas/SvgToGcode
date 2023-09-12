@@ -278,6 +278,7 @@ class cutterInterface(interfaces.Gcode):
             # ax.plot(X, Y, Z,  color='red')      
 
             plt.show()
+            # plt.show(block=False)
         elif backend == 'mayavi':
             from mayavi import mlab
             mlab.plot3d(history[:, 0], history[:, 1], history[:, 2])
