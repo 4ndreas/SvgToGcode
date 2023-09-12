@@ -125,3 +125,25 @@ def parse_file(file_path: str, transform_origin=True, canvas_height=None, dOpts=
 
     root = ElementTree.parse(file_path).getroot()
     return parse_root(root, transform_origin, canvas_height, dOpts)
+
+def getMinMax(LineList):
+    t1 = max(LineList,key=lambda x: x.start.x)
+    t2 = max(LineList,key=lambda x: x.end.x)
+    maxX = max(t1.start.x, t2.end.x)
+
+    t1 = max(LineList,key=lambda x: x.start.y)
+    t2 = max(LineList,key=lambda x: x.end.y)
+    maxY = max(t1.start.y, t2.end.y)
+
+    t1 = min(LineList,key=lambda x: x.start.x)
+    t2 = min(LineList,key=lambda x: x.end.x)
+    minX = min(t1.start.x, t2.end.x)
+
+    t1 = min(LineList,key=lambda x: x.start.y)
+    t2 = min(LineList,key=lambda x: x.end.y)
+    minY = min(t1.start.y, t2.end.y)
+
+    print("X max:", maxX, " min:", minX)
+    print("Y max:", maxY, " min:", minY)
+
+    return( maxX,maxY,minX,minY)
