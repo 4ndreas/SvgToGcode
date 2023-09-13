@@ -4,7 +4,7 @@ import warnings
 from typing import List
 
 from svg_to_gcode.geometry import Vector
-from svg_to_gcode.geometry import Line, EllipticalArc, CubicBazier, QuadraticBezier
+from svg_to_gcode.geometry import Line, Text, EllipticalArc, CubicBazier, QuadraticBezier
 from svg_to_gcode.svg_parser import Transformation
 from svg_to_gcode import formulas
 

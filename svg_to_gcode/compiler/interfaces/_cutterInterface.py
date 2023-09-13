@@ -16,7 +16,7 @@ verbose = False
 class cutterInterface(interfaces.Gcode):
     def __init__(self):
         super().__init__()
-        self.Zlift = 6.0
+        self.Zlift = 5.5
         self.ZPark = 25.0
         self.ZCut = 0
         self.ZFeed = 7000
@@ -126,7 +126,7 @@ class cutterInterface(interfaces.Gcode):
         else:
             return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift down"   
 
-    def setSlope(self, tool=0, slope=0):
+    def getSlope(self,tool=0, slope=0):
         self.tool = tool
         #to do convert to degree
         self.slope[tool] = slope
@@ -136,8 +136,12 @@ class cutterInterface(interfaces.Gcode):
         sArrow = (self.position.x, self.position.y,self.positionZ, 5*math.cos(slope),5*math.sin(slope),0)
         self.orientation_history.append(sArrow)
 
+        return degSlope
+           
+    def setSlope(self, tool=0, slope=0):
+        degSlope = self.getSlope(tool, slope)
+
         if tool == 1:
-            
             return f"G1 B{degSlope:.{self.precision}f} F{self.ABFeed:.{self.precision}f}" 
         else:
             return f"G1 A{degSlope:.{self.precision}f} F{self.ABFeed:.{self.precision}f}" 
@@ -218,6 +222,17 @@ class cutterInterface(interfaces.Gcode):
             print(f"Move to {x}, {y}, {z}")
 
         return command + ';'
+
+    def combinedLinearMove(self, x=None, y=None, z=None, tool=0, slope=0):
+        linearMove = self.linear_move( x, y, z)
+        degSlope = self.getSlope(tool, slope)
+
+        if tool == 1:
+            slopeGC=  f" B{degSlope:.{self.precision}f}" 
+        else:
+            slopeGC=  f" A{degSlope:.{self.precision}f}" 
+
+        return  linearMove.replace(f" F", slopeGC + f" F", 1)
 
     def view(self, backend='matplotlib'):
         """ View the generated Gcode.

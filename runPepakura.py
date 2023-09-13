@@ -3,6 +3,7 @@ import math
 from svg_to_gcode.compiler.interfaces import cutterInterface
 from svg_to_gcode.svg_parser import parse_file, getMinMax, openFile,getOutputFileName, drawOpts
 from svg_to_gcode.compiler import CompilerPC
+# from svg_to_gcode.TextToGcode.ttgLib.TextToGcode import ttg
 
 verbose = False
 
@@ -10,6 +11,8 @@ verbose = False
 offsetX = -82 # 4mm offset + 78mm tool distance
 offsetZ = 57.5
 offsetW = 59
+penOffsetX = 0
+penOffsetY = 0
 
 workingOffsetX = 10
 workingOffsetY = 0
@@ -54,15 +57,22 @@ cuts = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric 
 print("Size Cuts")
 maxXg,maxYg,minXg,minYg = getMinMax(cuts)
 
-Xoffset = 0
-Yoffset = 1500 - max(maxYg, maxYg) - 20
+Xoffset = 0.0
+Yoffset = 1500.0 - max(maxYg, maxYg) - 20.0
 
+#text
+dOpts.filter = 'text' # for cuts for Pepakura Files
+text = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+
+# add(Text)
+gcode_compiler.append_code([f"; Text"])
+gcode_compiler.append_text(text, 2500, Xoffset, Yoffset)
 
 # add(groves)
 gcode_compiler.append_code([f"; Groves"])
 gcode_compiler.cutting_speed = 5000
 gcode_compiler.slopeMax = math.radians(180)
-gcode_compiler.append_curves(groves,0,Xoffset,Yoffset)
+gcode_compiler.append_curves(groves,0,Xoffset + penOffsetX , Yoffset + penOffsetY)
 
 # add(cuts)
 gcode_compiler.append_code([f"; Cuts"])
@@ -74,7 +84,7 @@ gcode_compiler.append_curves(cuts,1,Xoffset,Yoffset)
 gcode_compiler.append_code([f"; Final Cut"])
 finalCut = cuts[0]
 finalCut.start.x = -10
-finalCut.end.x = 1280 + abs(offsetX)
+finalCut.end.x = 1260 # + abs(offsetX)
 finalCut.end.y = Yoffset -20
 finalCut.start.y = Yoffset -20
 finalCuts = []

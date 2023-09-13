@@ -2,8 +2,8 @@ from xml.etree import ElementTree
 from typing import List
 from copy import deepcopy
 
-from svg_to_gcode.svg_parser import Path, Transformation
-from svg_to_gcode.geometry import Curve
+from svg_to_gcode.svg_parser import Path,  Transformation
+from svg_to_gcode.geometry import Curve,Text
 
 NAMESPACES = {'svg': 'http://www.w3.org/2000/svg'}
 
@@ -69,20 +69,43 @@ def parse_root(root: ElementTree.Element, transform_origin=True, canvas_height=N
 
         draw = True
         # check for filter 
-        if dOpts.doFiltering:
-            if dOpts.filter == None:
-                if element.get('stroke-dasharray') != None:
-                    draw = False
-            else:
-                if element.get(dOpts.filter) == None:
-                    draw = False
+        # if dOpts.doFiltering:
+        #     if dOpts.filter == None:
+        #         if element.get('stroke-dasharray') != None:
+        #             draw = False
+        #     else:
+        #         if element.get(dOpts.filter) == None:
+        #             draw = False
 
-        if draw:
+        # if draw:
             # If the current element is opaque and visible, draw it
-            if dOpts.draw_hidden or visible:
-                if element.tag == "{%s}path" % NAMESPACES["svg"]:
+        if dOpts.draw_hidden or visible:
+            if element.tag == "{%s}path" % NAMESPACES["svg"]:
+                draw = True
+                if dOpts.filter == None:
+                    if element.get('stroke-dasharray') != None:
+                        draw = False
+                else:
+                    if element.get(dOpts.filter) == None:
+                        draw = False
+                if draw:
                     path = Path(element.attrib['d'], canvas_height, transform_origin, transformation)
                     curves.extend(path.curves)
+
+            elif element.tag == "{%s}text" % NAMESPACES["svg"]:
+                if dOpts.filter == 'text':
+                    command, arguments = transform.split('(')
+                    arguments = arguments.replace(')', '')
+                    arguments = [float(argument.strip()) for argument in arguments.replace(',', ' ').split()]
+                    x = element.get('x')
+                    y = element.get('y')
+                    a = arguments[0]
+                    tx = element.text
+                    path = Path("", canvas_height, transform_origin, transformation)
+                    path.curves.append(Text(x,y,a,tx))
+                    curves.extend(path.curves)
+
+
 
         # Continue the recursion
         curves.extend(parse_root(element, transform_origin, canvas_height, dOpts, visible, transformation))

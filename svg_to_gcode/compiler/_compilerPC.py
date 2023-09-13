@@ -4,17 +4,19 @@ import math
 
 from svg_to_gcode.compiler import Compiler
 from svg_to_gcode.compiler.interfaces import Interface
-from svg_to_gcode.geometry import Curve, Line
+from svg_to_gcode.geometry import Curve, Line, Text
 from svg_to_gcode.geometry import LineSegmentChain
 from svg_to_gcode import UNITS, TOLERANCES
 from svg_to_gcode import formulas
 from svg_to_gcode.geometry import Vector
 
+from svg_to_gcode.TextToGcode.ttgLib.TextToGcode import ttg
+
 class CompilerPC(Compiler):
     def __init__(self, *args, **kwargs):
         super(CompilerPC, self).__init__(*args, **kwargs)
         self.slopeMax = math.radians(10)
-        # self.slopeMax = 0.25
+
     def append_code(self,code):
         self.body.extend(code)
     
@@ -75,8 +77,9 @@ class CompilerPC(Compiler):
             code = [f";T{tool}",
                     self.interface.toolUp(tool),
                     self.interface.set_movement_speed(self.movement_speed),
-                    self.interface.linear_move(start.x, start.y), 
-                    self.interface.setSlope(tool,slope),
+                    # self.interface.linear_move(start.x, start.y), 
+                    # self.interface.setSlope(tool,slope),
+                    self.interface.combinedLinearMove(start.x, start.y, None,tool,slope),
                     self.interface.toolDown(tool),
                     self.interface.set_movement_speed(self.cutting_speed)]
 
@@ -109,3 +112,37 @@ class CompilerPC(Compiler):
             code.append(self.interface.linear_move(line.end.x, line.end.y))
             
         self.body.extend(code)
+
+
+    def append_text(self, curves: [typing.Type[Curve]], feedrate, offsetX = 0.0, offsetY = 0.0):
+        """
+        Draws curves by approximating them as line segments and calling self.append_line_chain(). The resulting code is
+        appended to self.body
+        """
+        penDown = f"G1 Z5 F{self.interface.ZFeed:.{self.interface.precision}f}"
+        penUp = f"G1 Z10 F{self.interface.ZFeed:.{self.interface.precision}f}"
+        ## To Do add Pen start code and offset
+        gcode = [f";T3", 
+                 "G1 Z25.00 W25.00 F7000.0000 ;",
+                 "@pendeploy"]
+               
+        self.body.extend(gcode)
+        
+        for text in curves:
+            # text = Text(text)
+            x = float(text.pos.x) + offsetX
+            y = float(text.pos.y) + offsetY
+            gcode = [f";Text: {text.text}"]
+            self.body.extend(gcode)
+
+            gcode = ttg(text.text,1,int(text.slope),x,y,"return",feedrate).toGcode(penDown,penUp,"G0","G1")
+            print(gcode)
+            
+            self.body.extend(gcode)
+
+        ## To Do add Pen endcode code and offset        
+        gcode = [f";T3 end", 
+                 "G1 Z25.00 W25.00 F7000.0000 ;",
+                 "@penraise"]
+               
+        self.body.extend(gcode)             

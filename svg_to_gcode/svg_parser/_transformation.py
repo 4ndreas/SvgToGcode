@@ -51,7 +51,6 @@ class Transformation:
             arguments = [float(argument.strip()) for argument in arguments.replace(',', ' ').split()]
 
             command_method = self.command_methods[command]
-
             command_method(*arguments)
 
     # SVG transforms are equivalent to CSS transforms https://www.w3.org/TR/css-transforms-1/#MatrixDefined
@@ -92,7 +91,7 @@ class Transformation:
 
         self.translation_matrix *= scale_matrix
 
-    def add_rotation(self, angle: float):
+    def add_rotation(self, angle: float, x=0.0, y=0.0):
         self.transformation_record.append(("rotate", [angle]))
 
         angle = math.radians(angle)
