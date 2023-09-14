@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from svg_to_gcode.svg_parser import Path,  Transformation
 from svg_to_gcode.geometry import Curve,Text
+from svg_to_gcode.geometry._vector import Vector
 
 NAMESPACES = {'svg': 'http://www.w3.org/2000/svg'}
 
@@ -148,6 +149,39 @@ def parse_file(file_path: str, transform_origin=True, canvas_height=None, dOpts=
 
     root = ElementTree.parse(file_path).getroot()
     return parse_root(root, transform_origin, canvas_height, dOpts)
+
+# def getDistance(a,b):
+#     x = a.x - b.x
+#     y = a.y - b.y
+
+#     return x*x+ y * y
+
+#  https://stackoverflow.com/questions/59580164/path-optimization-tsp-in-python
+
+# simple stort 
+def sortCurves(curves ):
+    
+    newOrder = []
+    start = curves[0].end
+    newOrder.append(curves.pop(0))
+    
+    while curves:
+        shortest = float("Inf") 
+
+        for curve in curves:
+            x = start.x - curve.start.x
+            y = start.y - curve.start.y
+            d = x*x* + y*y
+
+            if d < shortest:
+                shortest = d
+                selection = curve
+
+        newOrder.append(selection)
+
+        curves.remove(selection)
+        start = selection.end
+    return newOrder
 
 def getMinMax(LineList):
     t1 = max(LineList,key=lambda x: x.start.x)

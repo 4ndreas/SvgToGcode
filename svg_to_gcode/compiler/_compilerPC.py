@@ -136,7 +136,7 @@ class CompilerPC(Compiler):
             self.body.extend(gcode)
 
             gcode = ttg(text.text,1,int(text.slope),x,y,"return",feedrate).toGcode(penDown,penUp,"G0","G1")
-            print(gcode)
+            # print(gcode)
             
             self.body.extend(gcode)
 

@@ -1,15 +1,19 @@
 import math
 
 from svg_to_gcode.compiler.interfaces import cutterInterface
-from svg_to_gcode.svg_parser import parse_file, getMinMax, openFile,getOutputFileName, drawOpts
+from svg_to_gcode.svg_parser import parse_file, getMinMax, sortCurves, openFile,getOutputFileName, drawOpts
 from svg_to_gcode.compiler import CompilerPC
-# from svg_to_gcode.TextToGcode.ttgLib.TextToGcode import ttg
+from svg_to_gcode.svg_parser._dxf_importer import importDXF
+from svg_to_gcode.geometry import Text, Line
+from svg_to_gcode.geometry._vector import Vector
 
 verbose = False
+removeXoffset = True
+removeYoffset = True
 
 # working
 offsetX = -82 # 4mm offset + 78mm tool distance
-offsetZ = 57.5
+offsetZ = 58
 offsetW = 59
 penOffsetX = 0
 penOffsetY = 0
@@ -38,31 +42,46 @@ gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000,
 filename = openFile()
 print("\r\nOpen File: " + filename + "\r\n")
 
+if filename.__contains__(".svg"):
+    dOpts = drawOpts()
+    dOpts.doFiltering = True
+    ### Pepakura SVG Files ###
+    # groves
+    dOpts.filter = 'stroke-dasharray' # for groves for Pepakura Files
+    groves = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+    groves = sortCurves(groves)
 
-dOpts = drawOpts()
-dOpts.doFiltering = True
+    #cuts
+    dOpts.filter = None # for cuts for Pepakura Files
+    cuts = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+    cuts = sortCurves(cuts)
 
-### Pepakura Files ###
-# groves
-dOpts.filter = 'stroke-dasharray' # for groves for Pepakura Files
-groves = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+    #text
+    dOpts.filter = 'text' # for cuts for Pepakura Files
+    text = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+elif filename.__contains__(".dxf"):
+    cuts, groves,text = importDXF(filename)
+    groves = sortCurves(groves)
+    cuts = sortCurves(cuts)
+
+
 
 print("Size Groves")
 maxXg,maxYg,minXg,minYg = getMinMax(groves)
-
-#cuts
-dOpts.filter = None # for cuts for Pepakura Files
-cuts = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
-
 print("Size Cuts")
-maxXg,maxYg,minXg,minYg = getMinMax(cuts)
+maxXc,maxYc,minXc,minYc = getMinMax(cuts)
 
 Xoffset = 0.0
-Yoffset = 1500.0 - max(maxYg, maxYg) - 20.0
+Yoffset = 0.0
 
-#text
-dOpts.filter = 'text' # for cuts for Pepakura Files
-text = parse_file(filename,False,None,dOpts) # Parse an svg file into geometric curves
+if removeXoffset:
+    # shift to left
+    Xoffset = -min(minXg,minXc)
+
+if removeYoffset:
+    # shift up
+    Yoffset = 1500.0 - max(maxYg, maxYc) - 20.0 
+
 
 # add(Text)
 gcode_compiler.append_code([f"; Text"])
@@ -82,11 +101,12 @@ gcode_compiler.append_curves(cuts,1,Xoffset,Yoffset)
 
 # final cut 
 gcode_compiler.append_code([f"; Final Cut"])
-finalCut = cuts[0]
-finalCut.start.x = -10
-finalCut.end.x = 1260 # + abs(offsetX)
-finalCut.end.y = Yoffset -20
-finalCut.start.y = Yoffset -20
+
+cutY = Yoffset = 1500.0 - (max(maxYg, maxYc) - min(minYc,minYc) ) - 20.0 
+start = Vector(-10, cutY -20)
+end = Vector(1260, cutY -20)
+
+finalCut = Line(start, end)
 finalCuts = []
 finalCuts.append(finalCut)
 gcode_compiler.append_curves(finalCuts,1,0,0) 

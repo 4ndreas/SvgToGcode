@@ -8,5 +8,6 @@ specific maintenance notes:
 
 from svg_to_gcode.svg_parser._transformation import Transformation
 from svg_to_gcode.svg_parser._path import Path
-from svg_to_gcode.svg_parser._parser_methods import parse_file, getMinMax, parse_string, parse_root,drawOpts
+from svg_to_gcode.svg_parser._parser_methods import parse_file, sortCurves, getMinMax, parse_string, parse_root,drawOpts
 from svg_to_gcode.svg_parser._helper import openFile, getOutputFileName 
+from svg_to_gcode.svg_parser._dxf_importer import importDXF
