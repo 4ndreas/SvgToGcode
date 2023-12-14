@@ -16,17 +16,21 @@ verbose = False
 class cutterInterface(interfaces.Gcode):
     def __init__(self):
         super().__init__()
-        self.Zlift = 5.5
+        self.Zlift = 6.0
         self.ZPark = 25.0
         self.ZCut = 0
         self.ZFeed = 7000
+
+        # Pen
+        self.ZPenDown = 8
+        self.ZPenUp = 12
 
         self.overCut = 0.3  # value the cut extends over the point
         self.preCut = -0.75 # value the cut begins before the point (negative to extend the line, positive to reduce the line cut)
 
         # cutting and grove rotation speed 
         self.ABFeed = 25000
-        self.slope = [0.0, 0.0] #[rad]
+        self.slope = [0.0, 0.0, 0.0] #[rad]
 
         # self.position = Vector(0, 0)
         self.position = None
@@ -42,8 +46,9 @@ class cutterInterface(interfaces.Gcode):
         self.positionZ = 0.0 # z u v 
         self.currentMove = -1
         self.tool = 0
-        self.toolOffset = [(0, 0, 0,0)]
-        self.toolOffset.append((-78,0,0,0))
+        self.toolOffset = [(0, 0, 0,0)] # rad, x,y,z,t
+        self.toolOffset.append((-78,0,0,0)) # cut
+        self.toolOffset.append((0,0,0,0))   # pen
 
     def addHistory(self,move):
         if self.currentMove==0:
@@ -96,21 +101,26 @@ class cutterInterface(interfaces.Gcode):
 
         if tool == 1:
             return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f}; lift up"
-        else:
+        elif tool == 0:
             return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift up"
+        elif tool == 2:
+            return f"@penUp ; lift up"
 
     def toolPark(self, tool=0):
         self.tool = tool
         self.positionZ = self.ZCut + self.ZPark
 
         deltaZ = self.ZPark -self.positionZ
-        move = (self.position.x,self.position.y,self.positionZ ,0,0,deltaZ )
-        self.addHistory(move)
+        if self.position != None:
+            move = (self.position.x,self.position.y,self.positionZ ,0,0,deltaZ )
+            self.addHistory(move)
 
         if tool == 1:
-            return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f}; lift up"
+            return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f}; park"
+        elif tool == 0:
+            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; park"
         else:
-            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift up"
+            return f"@penUp\r\nG1 Z{self.positionZ:.{self.precision}f} W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; park"
 
     def toolDown(self, tool=0):
         self.tool = tool
@@ -123,8 +133,10 @@ class cutterInterface(interfaces.Gcode):
 
         if tool == 1:
             return f"G1 W{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift down" 
-        else:
-            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift down"   
+        elif tool == 0:
+            return f"G1 Z{self.positionZ:.{self.precision}f} F{self.ZFeed:.{self.precision}f} ; lift down" 
+        elif tool == 2:
+            return f"@penDown ; lift down"          
 
     def getSlope(self,tool=0, slope=0):
         self.tool = tool
@@ -143,8 +155,10 @@ class cutterInterface(interfaces.Gcode):
 
         if tool == 1:
             return f"G1 B{degSlope:.{self.precision}f} F{self.ABFeed:.{self.precision}f}" 
-        else:
+        elif tool == 0:
             return f"G1 A{degSlope:.{self.precision}f} F{self.ABFeed:.{self.precision}f}" 
+        else:
+            return f";no Rotation"
 
     def append_curves(self, curves: [typing.Type[Curve]], tool):
         """

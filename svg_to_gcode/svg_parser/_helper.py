@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import filedialog
 
 
-def openFile():
+def openFile(initialDir = os.getcwd()):
     filetypes = (
         ('Vector files', '*.svg *.dxf'),
         ('SVG files', '*.svg'),
@@ -13,7 +13,7 @@ def openFile():
 
     file_path = filedialog.askopenfilename(
             title='Open a SVG file',
-            initialdir=os.getcwd(),
+            initialdir=initialDir,
             filetypes=filetypes)
     
     return file_path

@@ -26,6 +26,8 @@ class CompilerPC(Compiler):
         Draws curves by approximating them as line segments and calling self.append_line_chain(). The resulting code is
         appended to self.body
         """
+        if len(curves) == 0:
+            return()
 
         for curve in curves:
             line_chain = LineSegmentChain()
@@ -114,16 +116,20 @@ class CompilerPC(Compiler):
         self.body.extend(code)
 
 
-    def append_text(self, curves: [typing.Type[Curve]], feedrate, offsetX = 0.0, offsetY = 0.0):
+    def append_text(self, curves: [typing.Type[Curve]],size = 1, feedrate=1000, offsetX = 0.0, offsetY = 0.0):
         """
         Draws curves by approximating them as line segments and calling self.append_line_chain(). The resulting code is
         appended to self.body
         """
-        penDown = f"G1 Z5 F{self.interface.ZFeed:.{self.interface.precision}f}"
-        penUp = f"G1 Z10 F{self.interface.ZFeed:.{self.interface.precision}f}"
+        # penDown = f"G1 Z{self.interface.ZPenDown} F{self.interface.ZFeed:.{self.interface.precision}f}"
+        # penUp = f"G1 Z{self.interface.ZPenUp} F{self.interface.ZFeed:.{self.interface.precision}f}"
+
+        penDown = "@penDown"
+        penUp = "@penUp"
         ## To Do add Pen start code and offset
+        
         gcode = [f";T3", 
-                 "G1 Z25.00 W25.00 F7000.0000 ;",
+                 "G1 Z{self.interface.ZPark} W{self.interface.ZPark} F7000.0000 ;",
                  "@pendeploy"]
                
         self.body.extend(gcode)
@@ -132,17 +138,20 @@ class CompilerPC(Compiler):
             # text = Text(text)
             x = float(text.pos.x) + offsetX
             y = float(text.pos.y) + offsetY
-            gcode = [f";Text: {text.text}"]
+            gcode = [f";Text: {text.text}",
+                     penUp,
+                     f"G0 X{x} Y{y} F{self.movement_speed}"]
             self.body.extend(gcode)
 
-            gcode = ttg(text.text,1,int(text.slope),x,y,"return",feedrate).toGcode(penDown,penUp,"G0","G1")
+            gcode = ttg(text.text,size,int(text.slope),x,y,"return",feedrate).toGcode(penDown,penUp,"G0","G1")
             # print(gcode)
             
             self.body.extend(gcode)
+                        
 
         ## To Do add Pen endcode code and offset        
         gcode = [f";T3 end", 
-                 "G1 Z25.00 W25.00 F7000.0000 ;",
+                 "G1 Z{self.interface.ZPark} W{self.interface.ZPark} F7000.0000 ;",
                  "@penraise"]
                
         self.body.extend(gcode)             

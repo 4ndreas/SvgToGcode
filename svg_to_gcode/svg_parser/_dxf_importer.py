@@ -26,6 +26,8 @@ def importDXF(file_path: str )-> (List[Curve],List[Curve],List[Curve]):
     dValleyGroves = msp.query("LINE").layer == "ValleyLine"
 
     dText = msp.query("TEXT").layer == "Edge ID"
+    if len(dText.entities) == 0:
+        dText = msp.query("TEXT").layer == "Edge_ID"
 
     # add cuts
     for entitie in dCuts.entities:  

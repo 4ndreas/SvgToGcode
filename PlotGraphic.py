@@ -8,10 +8,13 @@ from svg_to_gcode.geometry import Text, Line
 from svg_to_gcode.geometry._vector import Vector
 
 verbose = False
-removeXoffset = True
-removeYoffset = True
+removeXoffset = False
+removeYoffset = False
 
 globalYOffset = 1500
+
+plotText = False
+TextSize = 2
 
 # working
 offsetX = -82 # 4mm offset + 78mm tool distance
@@ -45,79 +48,57 @@ gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000,
 gcode_compiler.append_code([f";T{0}", gcode_compiler.interface.toolPark(0)])
 gcode_compiler.append_code([f";T{1}", gcode_compiler.interface.toolPark(1)])
 
-filename = openFile("E:/Documents/_pepakura/huhn/export2")
+filename = openFile()
 print("\r\nOpen File: " + filename + "\r\n")
 
 if filename.__contains__(".svg"):
     dOpts = drawOpts()
     dOpts.doFiltering = True
-    ### Pepakura SVG Files ###
-    # groves
-    dOpts.filter = 'stroke-dasharray' # for groves for Pepakura Files
-    groves = parse_file(filename,True,None,dOpts) # Parse an svg file into geometric curves
-    groves = sortCurves(groves)
+    ### SVG Files ###
 
     #cuts
     dOpts.filter = None # for cuts for Pepakura Files
-    cuts = parse_file(filename,True,None,dOpts) # Parse an svg file into geometric curves
-    cuts = sortCurves(cuts)
+    graphics = parse_file(filename,True,None,dOpts) # Parse an svg file into geometric curves
+    # grafics = sortCurves(grafics)
 
     #text
     dOpts.filter = 'text' # for cuts for Pepakura Files
     text = parse_file(filename,True,None,dOpts) # Parse an svg file into geometric curves
-elif filename.__contains__(".dxf"):
-    cuts, groves,text = importDXF(filename)
-    groves = sortCurves(groves)
-    cuts = sortCurves(cuts)
+
+# elif filename.__contains__(".dxf"):
+#     grafics, groves,text = importDXF(filename)
+#     groves = sortCurves(groves)
+#     grafics = sortCurves(grafics)
 
 
-print("Size Groves")
-maxXg,maxYg,minXg,minYg = getMinMax(groves)
 print("Size Cuts")
-maxXc,maxYc,minXc,minYc = getMinMax(cuts)
+maxXc,maxYc,minXc,minYc = getMinMax(graphics)
 
 Xoffset = 0.0
 Yoffset = 0.0
 
 if removeXoffset:
     # shift to left
-    Xoffset = -min(minXg,minXc)
+    Xoffset = -minXc
 
 if removeYoffset:
     # shift up
-    Yoffset = globalYOffset - max(maxYg, maxYc) - 20.0 
-
+    Yoffset = globalYOffset -  maxYc - 20.0 
 
 # add(Text)
-if len(text) > 0:
+if len(text) > 0 and plotText:
     gcode_compiler.append_code([f"; Text"])
-    gcode_compiler.append_text(text, 2, 2500, Xoffset + penOffsetX, Yoffset + penOffsetY)
+    gcode_compiler.append_text(text, TextSize, 2500, Xoffset + penOffsetX, Yoffset + penOffsetY)
 
-# add(groves)
-if len(groves) > 0:
-    gcode_compiler.append_code([f"; Groves"])
-    gcode_compiler.cutting_speed = 5000
-    gcode_compiler.slopeMax = math.radians(180)
-    gcode_compiler.append_curves(groves,0,Xoffset , Yoffset)
+# add(Grafic)
+if len(graphics) > 0:
+    gcode_compiler.append_code([f"; Grafic"])
+    gcode_compiler.cutting_speed = 2500
+    gcode_compiler.overCut = 0.0
+    gcode_compiler.preCut = 0.0
+    gcode_compiler.slopeMax = math.radians(360)
+    gcode_compiler.append_curves(graphics,2,Xoffset + penOffsetX, Yoffset + penOffsetY)
 
-# add(cuts)
-if len(cuts) > 0:
-    gcode_compiler.append_code([f"; Cuts"])
-    gcode_compiler.cutting_speed = 3000
-    gcode_compiler.slopeMax = math.radians(15)
-    gcode_compiler.append_curves(cuts,1,Xoffset,Yoffset) 
-
-# final cut 
-gcode_compiler.append_code([f"; Final Cut"])
-
-cutY = Yoffset = globalYOffset - (max(maxYg, maxYc) - min(minYc,minYc) ) - 20.0 
-start = Vector(-15, cutY -20)
-end = Vector(1280, cutY -20)
-
-finalCut = Line(start, end)
-finalCuts = []
-finalCuts.append(finalCut)
-gcode_compiler.append_curves(finalCuts,1,0,0) 
 
 gcode_compiler.append_code([f"; End Code"])
 
@@ -128,5 +109,5 @@ print("\r\nFile saved to: " + outputFilename + "\r\n")
 
 
 print("Final Size")
-gcode_compiler.interface.view()
+# gcode_compiler.interface.view()
 

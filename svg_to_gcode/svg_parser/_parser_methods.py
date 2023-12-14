@@ -95,17 +95,45 @@ def parse_root(root: ElementTree.Element, transform_origin=True, canvas_height=N
 
             elif element.tag == "{%s}text" % NAMESPACES["svg"]:
                 if dOpts.filter == 'text':
-                    command, arguments = transform.split('(')
-                    arguments = arguments.replace(')', '')
-                    arguments = [float(argument.strip()) for argument in arguments.replace(',', ' ').split()]
+                    if transform:
+                        command, arguments = transform.split('(')
+                        arguments = arguments.replace(')', '')
+                        arguments = [float(argument.strip()) for argument in arguments.replace(',', ' ').split()]
+                        a = arguments[0]
+                    else:
+                        a = 0
                     x = element.get('x')
                     y = element.get('y')
-                    a = arguments[0]
-                    tx = element.text
+                    
+                    # t = parse_root(element, transform_origin, canvas_height, dOpts, visible, transformation)
+                    if element.text == None:
+                        for e2 in list(element):
+                            if e2.tag == "{%s}tspan" % NAMESPACES["svg"]:
+                                tx = e2.text
+                    else:
+                        tx = element.text
+                    
                     path = Path("", canvas_height, transform_origin, transformation)
                     path.curves.append(Text(x,y,a,tx))
                     curves.extend(path.curves)
 
+            # elif element.tag == "{%s}tspan" % NAMESPACES["svg"]:
+            #     if dOpts.filter == 'text':
+            #         if element.text != None:
+            #             if transform:
+            #                 command, arguments = transform.split('(')
+            #                 arguments = arguments.replace(')', '')
+            #                 arguments = [float(argument.strip()) for argument in arguments.replace(',', ' ').split()]
+            #                 a = arguments[0]
+            #             else:
+            #                 a = 0
+            #             x = element.get('x')
+            #             y = element.get('y')
+                        
+            #             tx = element.text
+            #             path = Path("", canvas_height, transform_origin, transformation)
+            #             path.curves.append(Text(x,y,a,tx))
+            #             curves.extend(path.curves)
 
 
         # Continue the recursion
@@ -161,6 +189,9 @@ def parse_file(file_path: str, transform_origin=True, canvas_height=None, dOpts=
 # simple stort 
 def sortCurves(curves ):
     
+    if len(curves) == 0:
+        return(curves)
+
     newOrder = []
     start = curves[0].end
     newOrder.append(curves.pop(0))
@@ -184,6 +215,9 @@ def sortCurves(curves ):
     return newOrder
 
 def getMinMax(LineList):
+    if len(LineList) == 0:
+        return(0,0,0,0)
+
     t1 = max(LineList,key=lambda x: x.start.x)
     t2 = max(LineList,key=lambda x: x.end.x)
     maxX = max(t1.start.x, t2.end.x)
