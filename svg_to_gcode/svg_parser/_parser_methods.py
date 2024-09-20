@@ -214,6 +214,16 @@ def sortCurves(curves ):
         start = selection.end
     return newOrder
 
+def scaleLines(curves, scaleX ,scaleY):
+    for curve in curves:
+        curve.start.x = curve.start.x * scaleX
+        curve.start.y = curve.start.y * scaleY
+        curve.end.x = curve.end.x * scaleX
+        curve.end.y = curve.end.y * scaleY 
+    return curves
+
+
+
 def getMinMax(LineList):
     if len(LineList) == 0:
         return(0,0,0,0)

@@ -57,3 +57,51 @@ def importDXF(file_path: str )-> (List[Curve],List[Curve],List[Curve]):
 
 
     return cuts,groves,text
+
+def splitPolyLine(entitie):
+    lines  = []
+    a = entitie.explode()
+    for entitie in a.entities:  
+        if entitie.DXFTYPE == 'LINE':
+            lines.extend(getLine(entitie))
+    # lines  = []
+    # start = Vector(entitie.dxf.start.x, entitie.dxf.start.y)
+    # end = Vector(entitie.dxf.end.x, entitie.dxf.end.y)
+    # lines.append(Line(start, end))    
+    # # if hasattr(entitie.dxf, '_entity'):
+    # #     lines.extend(getLine(entitie.dxf._entity))
+    return lines
+
+def getLine(entitie):
+    lines  = []
+    start = Vector(entitie.dxf.start.x, entitie.dxf.start.y)
+    end = Vector(entitie.dxf.end.x, entitie.dxf.end.y)
+    lines.append(Line(start, end))    
+    # if hasattr(entitie.dxf, '_entity'):
+    #     lines.extend(getLine(entitie.dxf._entity))
+    return lines
+
+def importAllDXF(file_path: str )-> (List[Curve]):
+    canvas_height = 1500
+
+    lines  = []
+
+    doc = ezdxf.readfile(file_path)
+    msp = doc.modelspace()
+
+    dAll = msp.query() # gets all entries 
+    dLines = msp.query("LINE")
+
+    # add lines
+    for entitie in dAll.entities:  
+        if entitie.DXFTYPE == 'POLYLINE':
+            lines.extend(splitPolyLine(entitie))
+        if entitie.DXFTYPE == 'LINE':
+            lines.extend(getLine(entitie))
+        # start = Vector(entitie.dxf.start.x, entitie.dxf.start.y)
+        # end = Vector(entitie.dxf.end.x, entitie.dxf.end.y)
+        # lines.append(Line(start, end))
+        
+                    
+
+    return lines

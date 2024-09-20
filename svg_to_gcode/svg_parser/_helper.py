@@ -1,7 +1,7 @@
 import os
 import tkinter as tk
-from tkinter import filedialog
-
+# from tkinter import filedialog
+from tkinter.filedialog import askopenfilename
 
 def openFile(initialDir = os.getcwd()):
     filetypes = (
@@ -11,7 +11,8 @@ def openFile(initialDir = os.getcwd()):
         ('All files', '*.*')
     )
 
-    file_path = filedialog.askopenfilename(
+    # file_path = filedialog.askopenfilename(
+    file_path = askopenfilename(
             title='Open a SVG file',
             initialdir=initialDir,
             filetypes=filetypes)
