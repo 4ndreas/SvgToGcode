@@ -51,35 +51,23 @@ gcode_compiler.append_code([f";T{1}", gcode_compiler.interface.toolPark(1)])
 
 
 
-# filename = "E:/Documents/Inventor/ato/sq62_B.dxf"
-filename = openFile("E:/Documents/surrealLabor/")
+filename = "E:/Documents/Inventor/ato/mkLeuchtwürfel/30cm/LW_cuts_A.dxf"
+# filename = "E:/Documents/Inventor/ato/mkLeuchtwürfel/30cm/LW_cuts_B.dxf"
+# filename = openFile("E:/Documents/Inventor/Halter/huhnProject")
 # filename = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_cut2.dxf"
-# print("\r\nOpen File: " + filename + "\r\n")
-# filename = "E:/Documents/_surrealLabor/lampe/chitinlamp (1)/schnittdaten_chitinlamp_ohne_loecher.dxf"
+print("\r\nOpen File: " + filename + "\r\n")
 cuts = importAllDXF(filename)
 cuts = sortCurves(cuts)
 cuts = scaleLines(cuts,scale,scale)
 
-
-# filename = "E:/Documents/Inventor/ato/sq62_B.dxf"
-# filename = openFile("E:/Documents/surrealLabor/")
-# filename = "E:/Documents/_surrealLabor/lampe/chitinlamp (1)/schnittdaten_chitinlamp_ohne_loecher.dxf"
-
-# filename = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_cut2.dxf"
-# print("\r\nOpen File: " + filename + "\r\n")
-# cuts2 = importAllDXF(filename)
-# cuts2 = sortCurves(cuts2)
-# cuts2 = scaleLines(cuts2,scale,scale)
-
-# cuts.extend(cuts2)
 # filename2 = openFile("E:/Documents/Inventor/Halter/huhnProject")
-# filename2 = openFile("")
-# filename2 = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_grove2.dxf"
+filename2 = "E:/Documents/Inventor/ato/mkLeuchtwürfel/30cm/LW_groves_A.dxf"
+# filename2 = "E:/Documents/Inventor/ato/mkLeuchtwürfel/30cm/LW_groves_B.dxf"
 # print("\r\nOpen File: " + filename2 + "\r\n")
-groves = list()
-# groves = importAllDXF(filename)
-# groves = sortCurves(groves)
-# groves = scaleLines(groves,scale,scale)
+# groves = list()
+groves = importAllDXF(filename2)
+groves = sortCurves(groves)
+groves = scaleLines(groves,scale,scale)
 
 text =  []
 
@@ -102,49 +90,93 @@ if removeYoffset:
 gOffsetX = Xoffset
 gOffsetY = Yoffset
 
+offsetcut = 420
+
+if len(groves) > 0:
+    gcode_compiler.append_code([f"; Groves"])
+    gcode_compiler.cutting_speed = 5000
+    gcode_compiler.slopeMax = math.radians(180)
+    gcode_compiler.append_curves(groves,0, gOffsetX, gOffsetY)
+
+gOffsetX = offsetcut
+gOffsetY = 0
+if len(groves) > 0:
+    gcode_compiler.append_code([f"; Groves"])
+    gcode_compiler.cutting_speed = 5000
+    gcode_compiler.slopeMax = math.radians(180)
+    gcode_compiler.append_curves(groves,0, gOffsetX, gOffsetY)
+
+gOffsetX = offsetcut
+gOffsetY = 0
+if len(groves) > 0:
+    gcode_compiler.append_code([f"; Groves"])
+    gcode_compiler.cutting_speed = 5000
+    gcode_compiler.slopeMax = math.radians(180)
+    gcode_compiler.append_curves(groves,0, gOffsetX, gOffsetY)
+
+
+gOffsetX = Xoffset
+gOffsetY = Yoffset
 if len(cuts) > 0:
     gcode_compiler.append_code([f"; Cuts"])
     gcode_compiler.cutting_speed = 7500
-    gcode_compiler.slopeMax = math.radians(45)
+    gcode_compiler.slopeMax = math.radians(15)
+    gcode_compiler.append_curves(cuts,1, gOffsetX, gOffsetY)  
+
+gOffsetX = offsetcut
+gOffsetY = 0
+if len(cuts) > 0:
+    gcode_compiler.append_code([f"; Cuts"])
+    gcode_compiler.cutting_speed = 7500
+    gcode_compiler.slopeMax = math.radians(15)
+    gcode_compiler.append_curves(cuts,1, gOffsetX, gOffsetY)  
+
+gOffsetX = offsetcut
+gOffsetY = 0
+if len(cuts) > 0:
+    gcode_compiler.append_code([f"; Cuts"])
+    gcode_compiler.cutting_speed = 7500
+    gcode_compiler.slopeMax = math.radians(15)
     gcode_compiler.append_curves(cuts,1, gOffsetX, gOffsetY)  
 
 
-# GRID
+
+# # GRID
 # for n in range(0,1):
 #     gridOffset = 0
 #     if n == 0:
 #         gOffsetX = Xoffset
 #         gOffsetY = Yoffset 
 #     else:
-#         gOffsetX = 400
+#         gOffsetX = 450
 #         gOffsetY = 0
-    # add(Text)
-    # if len(text) > 0:
-    #     gcode_compiler.append_code([f"; Text"])
-    #     gcode_compiler.append_text(text, 2, 2500, Xoffset + penOffsetX + gOffsetX, Yoffset + penOffsetY + gOffsetY)
+#     # add(Text)
+#     # if len(text) > 0:
+#     #     gcode_compiler.append_code([f"; Text"])
+#     #     gcode_compiler.append_text(text, 2, 2500, Xoffset + penOffsetX + gOffsetX, Yoffset + penOffsetY + gOffsetY)
 
-    # add(groves)
-    # if len(groves) > 0:
-    #     gcode_compiler.append_code([f"; Groves"])
-    #     gcode_compiler.cutting_speed = 5000
-    #     gcode_compiler.slopeMax = math.radians(180)
-    #     gcode_compiler.append_curves(groves,0, gOffsetX, gOffsetY)
+#     # add(groves)
+#     if len(groves) > 0:
+#         gcode_compiler.append_code([f"; Groves"])
+#         gcode_compiler.cutting_speed = 5000
+#         gcode_compiler.slopeMax = math.radians(180)
+#         gcode_compiler.append_curves(groves,0, gOffsetX, gOffsetY)
 
-    # add(cuts)
-    # if len(cuts) > 0:
-    #     gcode_compiler.append_code([f"; Cuts"])
-    #     gcode_compiler.cutting_speed = 7500
-    #     gcode_compiler.slopeMax = math.radians(15)
-    #     gcode_compiler.append_curves(cuts,1, gOffsetX, gOffsetY) 
+#     # add(cuts)
+#     if len(cuts) > 0:
+#         gcode_compiler.append_code([f"; Cuts"])
+#         gcode_compiler.cutting_speed = 7500
+#         gcode_compiler.slopeMax = math.radians(15)
+#         gcode_compiler.append_curves(cuts,1, gOffsetX, gOffsetY) 
 
 # final cut 
 gcode_compiler.append_code([f"; Final Cut"])
 
-# cutY = Yoffset  = globalYOffset - (max(maxYg, maxYc) - min(minYc,minYc) ) - 20
-cutY = Yoffset  = globalYOffset - maxYc - minYc - 20
+cutY = Yoffset  = globalYOffset - (max(maxYg, maxYc) - min(minYc,minYc) ) - 20
+# cutY = Yoffset  = globalYOffset - maxYc - minYc - 20
 
 start = Vector(-16, cutY -finalCutMM)
-end = Vector(1250, cutY -finalCutMM)
+end = Vector(1280, cutY -finalCutMM)
 
 finalCut = Line(start, end)
 finalCuts = []

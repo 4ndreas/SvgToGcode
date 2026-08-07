@@ -45,20 +45,28 @@ gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000,
 gcode_compiler.append_code([f";T{0}", gcode_compiler.interface.toolPark(0)])
 gcode_compiler.append_code([f";T{1}", gcode_compiler.interface.toolPark(1)])
 
+# scale = 1.0
+scale = 0.9
 
-scale = 1.0
 finalCutMM = 15
 
 # filename = "E:/Documents/Inventor/ato/sq60.dxf"
 # filename = openFile("E:/Documents/Inventor/Halter/huhnProject")
-filename = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_cut2.dxf"
+# filename = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_cut2.dxf"
+# filename = "E:/Documents/_surrealLabor/logo/box_S_cuts.dxf"
+filename = "E:/Documents/_surrealLabor/logo/box_S_cuts_final.dxf"
+# filename = "E:/Documents/_surrealLabor/logo/box_S_cuts_190.dxf"
 print("\r\nOpen File: " + filename + "\r\n")
 cuts = importAllDXF(filename)
 cuts = sortCurves(cuts)
 cuts = scaleLines(cuts,scale,scale)
 
 # filename2 = openFile("E:/Documents/Inventor/Halter/huhnProject")
-filename2 = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_grove2.dxf"
+# filename2 = "E:/Documents/Inventor/Halter/huhnProject/Box200mm_grove2.dxf"
+# filename2 = "E:/Documents/_surrealLabor/logo/box_S_grooves_sorted.dxf"
+filename2 = "E:/Documents/_surrealLabor/logo/box_S_grooves_final.dxf"
+# filename2 = "E:/Documents/_surrealLabor/logo/box_S_grooves_190_sorted.dxf"
+# filename2 = openFile("E:/Documents/surrealLabor/logo/box_S_cuts.dxf")
 # print("\r\nOpen File: " + filename2 + "\r\n")
 groves = list()
 groves = importAllDXF(filename2)
@@ -85,7 +93,7 @@ if removeYoffset:
 
 
 # GRID
-for n in range(0,1):
+for n in range(0,3):
     gridOffset = 0
     if n == 0:
         gOffsetX = Xoffset

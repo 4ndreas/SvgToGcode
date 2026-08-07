@@ -45,7 +45,7 @@ gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000,
 gcode_compiler.append_code([f";T{0}", gcode_compiler.interface.toolPark(0)])
 gcode_compiler.append_code([f";T{1}", gcode_compiler.interface.toolPark(1)])
 
-filename = openFile("E:/Documents/_pepakura/huhn/export2")
+filename = openFile("E:/Documents/_pepakura/huhn/export3")
 print("\r\nOpen File: " + filename + "\r\n")
 
 if filename.__contains__(".svg"):
@@ -112,7 +112,7 @@ gcode_compiler.append_code([f"; Final Cut"])
 
 cutY = Yoffset = globalYOffset - (max(maxYg, maxYc) - min(minYc,minYc) ) - 20.0 
 start = Vector(-15, cutY -20)
-end = Vector(1280, cutY -20)
+end = Vector(1250, cutY -20)
 
 finalCut = Line(start, end)
 finalCuts = []

@@ -8,7 +8,7 @@ from svg_to_gcode.geometry import LineSegmentChain
 from svg_to_gcode import UNITS, TOLERANCES
 
 from svg_to_gcode.geometry import Vector
-from svg_to_gcode.svg_parser import parse_file, getMinMax, drawOpts
+from svg_to_gcode.svg_parser import parse_file, getMinMax, sortCurves,scaleLines, openFile,getOutputFileName, drawOpts
 from svg_to_gcode.compiler import Compiler,CompilerPC, interfaces
 from svg_to_gcode import formulas
 
@@ -54,7 +54,11 @@ gcode_compiler = CompilerPC(cutterInterface, movement_speed=25000, cutting_speed
 # filename = "HEV_Chest_scale.svg"
 # filename = "HEVMIR.svg"
 # filename = "HEV Belt-unfold 32 inch.svg"
-filename = "HEV_Chest_scale.svg"
+# filename = "HEV_Chest_scale.svg"
+
+filename = "random_rectangles.svg"
+
+# filename = openFile("E:/Documents/surrealLabor/")
 
 dOpts = drawOpts()
 dOpts.doFiltering = True
@@ -94,7 +98,7 @@ gcode_compiler.append_curves(cuts,1,Xoffset,Yoffset)
 gcode_compiler.append_code([f"; Final Cut"])
 finalCut = cuts[0]
 finalCut.start.x = -10
-finalCut.end.x = 1280 + abs(offsetX)
+finalCut.end.x = 1250 + abs(offsetX)
 finalCut.end.y = Yoffset -20
 finalCut.start.y = Yoffset -20
 finalCuts = []

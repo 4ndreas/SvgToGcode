@@ -97,11 +97,15 @@ def importAllDXF(file_path: str )-> (List[Curve]):
         if entitie.DXFTYPE == 'POLYLINE':
             lines.extend(splitPolyLine(entitie))
         if entitie.DXFTYPE == 'LINE':
-            lines.extend(getLine(entitie))
+            ln = getLine(entitie)
+            lines.extend(ln)
+
+
         # start = Vector(entitie.dxf.start.x, entitie.dxf.start.y)
         # end = Vector(entitie.dxf.end.x, entitie.dxf.end.y)
         # lines.append(Line(start, end))
-        
+    lines = list(set(lines))
+
                     
 
     return lines
